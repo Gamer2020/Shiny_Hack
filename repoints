@@ -1,0 +1,4 @@
+###################################
+# Format: location_label | address(with 0x08 prefix)
+# Example: TM_move_table 081B6D10
+###################################

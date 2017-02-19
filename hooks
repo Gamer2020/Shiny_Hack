@@ -1,0 +1,5 @@
+####################################################################
+# Format: function_name | address(with 0x08 prefix) | registerNO
+# Example: is_move_a_HM 081B6D14 1
+####################################################################
+#shiny_hack_main 0806AF9C 0
