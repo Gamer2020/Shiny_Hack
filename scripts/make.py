@@ -42,34 +42,6 @@ def find_offset_to_put(rom, needed_bytes, start_loc):
 				return 0
 	return offset
 
-def get_pointer(rom, loc):
-	rom.seek(loc)
-	return int.from_bytes(rom.read(4), byteorder = 'little') - 0x08000000
-	
-def clear_space(rom, loc, bytes):
-	if (CLEAN_REPOINTED_DATA == True):
-		rom.seek(loc)
-		for i in range(0, bytes):
-			rom.write(b'\xFF')
-	
-def update_ptrs(rom, oldptr, newptr):
-	rom.seek(0x0)
-	copy = rom.read(0x1E8000)
-	copy = copy.replace((oldptr + 0x08000000).to_bytes(4, byteorder = 'little'), (newptr + 0x08000000).to_bytes(4, byteorder = 'little'))
-	rom.seek(0x0)
-	rom.write(copy)
-
-def repoint_table(rom, table_address, bytes, offset, name):
-	rom.seek(table_address)
-	to_copy = rom.read(bytes)
-	clear_space(rom, table_address, bytes)
-	rom.seek(offset)
-	rom.write(to_copy)
-	save_table_ptrs(name, offset, 0)
-	update_ptrs(rom, table_address, offset)
-	offset += bytes
-	return offset
-
 def replace_word(file, to_search, replacement):
 	get = 0
 	break_loop = 0
