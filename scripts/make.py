@@ -34,7 +34,7 @@ def find_offset_to_put(rom, needed_bytes, start_loc):
 			if (byte):
 				if (byte != b'\xFF'):
 					offset += i + 1
-					align_offset(offset)
+					offset = align_offset(offset)
 					found_bytes = 0
 					break
 				found_bytes += 1
