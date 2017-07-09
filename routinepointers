@@ -1,5 +1,0 @@
-###################################
-# Format: routine_label | address(with 0x08 prefix)
-# Example: accuracy_calc 0831BD14
-###################################
-shiny_hack_main 0806AFA0

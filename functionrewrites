@@ -1,4 +1,0 @@
-####################################################################
-# Format: function_name | address(with 0x08 prefix) | number_of_arguments | returns(0 - doesn't, 1 - does)
-# Example: change_stats 08050A1C 4 1
-####################################################################

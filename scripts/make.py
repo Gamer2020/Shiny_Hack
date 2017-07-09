@@ -1,23 +1,23 @@
 #!/usr/bin/env python3
 
-import shutil
 import os
+import itertools
+import hashlib
+import subprocess
+import sys
+import fileinput
+import shutil
+import fnmatch
 
 ############
 #Options go here.
 ############
 
-CLEAN_REPOINTED_DATA = True #cleans repointed data if true; leaves it if false
 FREE_SPACE = 0xF00000
-BUILD_CODE = True #Set to False if you want to modify and run the build/insert scripts manually
 
 #############
 #Options end here.
 #############
-
-###############
-#Functions start here.
-###############
 
 def align_offset(offset):
 	while (offset % 4) != 0:
@@ -41,66 +41,78 @@ def find_offset_to_put(rom, needed_bytes, start_loc):
 			else:
 				return 0
 	return offset
+	
+def replace_line(file,searchString,replaceString):
+    for line in fileinput.input(file, inplace=1):
+        if searchString in line:
+            line = replaceString + "\n"
+        sys.stdout.write(line)
 
-def replace_word(file, to_search, replacement):
-	get = 0
-	break_loop = 0
-	to_replace = to_search + " "
-	file.seek(0x0)
-	for line in file:
-		if (break_loop == 1):
-			break
-		for word in line.split():
-			if (word == to_search):
-				get = 1
-			elif (get == 1):
-				to_replace += word
-				break_loop = 1
-				break
-	file.seek(0x0)
-	copy = file.read()
-	copy = copy.replace(to_replace, to_search + " " + replacement)
-	file.seek(0x0)
-	file.write(copy)
-		
-def build_insert_code(offset, only_build):
-	linker = open("linker.ld", 'r+')
-	replace_word(linker, '+', hex(offset) + "),")
-	linker.close()
-	if only_build == True:
-		os.system("python scripts//build.py")
-		return
+if (os.environ.get('DEVKITARM') == 'None'):
+	print("...\nDevkitARM not found.")
+	sys.exit(1)
+else:
+	from sys import platform
+	if platform == "linux" or platform == "linux2":
+		PATH = os.environ['DEVKITARM'] + "/bin"
+		print("DevkitARM found!")
+	elif platform == "win32":
+		PATH = os.environ['DEVKITARM'].replace("/c", 'c:', 1) + "/bin"
+		print("DevkitARM found!")
 	else:
-		os.system("python scripts//build.py")
-		insert = open("scripts//insert.py", 'r+')
-		replace_word(insert, "at',", "default=" + hex(offset) + ')')
-		insert.close()
-		os.system("python scripts//insert.py --debug>function_offsets.ini")
-		return
+		PATH = os.environ['DEVKITARM'] + "/bin"
+		print("DevkitARM found!")
 
-##############
-#Functions end here.
-##############
-		
+PREFIX = '/arm-none-eabi-'
+AS = (PATH + PREFIX + 'as')
+CC = (PATH + PREFIX + 'gcc')
+LD = (PATH + PREFIX + 'ld')
+OBJCOPY = (PATH + PREFIX + 'objcopy')
+
+SRC = 'src'
+BUILD = 'build'
+
+ASFLAGS = '-mthumb'
+LDFLAGS = '-z muldefs --relocatable -T BPEE.ld -T linker.ld'
+CFLAGS = '-g -O2 -Wall -mthumb -std=c11 -mcpu=arm7tdmi -march=armv4t -mno-thumb-interwork -fno-inline -fno-builtin -mlong-calls'
+
+if os.path.exists(BUILD):
+	shutil.rmtree(BUILD)
+
+try:
+	os.makedirs(BUILD)
+except FileExistsError:
+	pass
+
+#Process c files
+for file in os.listdir(SRC + '/'):
+    if fnmatch.fnmatch(file, '*.c'):
+        subprocess.call(CC + " " + CFLAGS + " -c " + SRC + "/" + file + " -o " + BUILD + "/" + file.rsplit( ".", 1 )[ 0 ]  + ".o")
+
+#Process s files
+for file in os.listdir(SRC + '/'):
+    if fnmatch.fnmatch(file, '*.s'):
+        subprocess.call(AS + " " + ASFLAGS + " -c " + SRC + "/" + file + " -o " + BUILD + "/" + file.rsplit( ".", 1 )[ 0 ]  + ".o")
+
+#Link
+FilesToLink = ""
+for file in os.listdir(BUILD + '/'):
+    if fnmatch.fnmatch(file, '*.o'):
+        FilesToLink = FilesToLink + '"' + BUILD + "/" + file + '" '
+
+subprocess.call(LD + " " + LDFLAGS + " -o " + '"' + BUILD + "/linked.o" + '" ' + FilesToLink)
+
+subprocess.call(OBJCOPY + " -O " + 'binary "' + BUILD + "/linked.o" + '" "' + BUILD + '/output.bin"')
+
 shutil.copyfile("rom.gba", "test.gba")
 with open("test.gba", 'rb+') as rom:
+	offset = find_offset_to_put(rom, os.stat("build/output.bin").st_size, align_offset(FREE_SPACE))
+	rom.close()
 
-###############
-#Add your code here.
-###############
+replace_line("armips.asm",".org 0x08",".org " + hex(offset + 134217728))
 
+#print(offset)
 
+subprocess.call('armips "armips.asm" -sym "symbols.sym"')
 
-###############
-#End your code here.
-###############
-
-		offset = align_offset(FREE_SPACE)
-		if BUILD_CODE == True:
-			build_insert_code(offset, True)
-			offset = find_offset_to_put(rom, os.stat("build//output.bin").st_size, align_offset(FREE_SPACE))
-			if offset == 0:
-				print("Not enough free space to insert code")
-			else:
-				build_insert_code(offset, False)
-rom.close()
+subprocess.call("echo Project compiled and inserted!")

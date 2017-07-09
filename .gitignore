@@ -47,7 +47,6 @@ Temporary Items
 .apdisk
 
 ## Others
-*.asm
 *.bin
 *.gba
 *.bak
@@ -55,5 +54,6 @@ Temporary Items
 *.sgm
 *.sa1
 *.lnk
+*.sym
 
 build

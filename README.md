@@ -10,6 +10,8 @@ DevkitARM
 
 Python 3.5
 
+ARMIPS
+
 Tutorial
 ====================
 

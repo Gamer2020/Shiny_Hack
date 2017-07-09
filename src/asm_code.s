@@ -3,6 +3,7 @@
 .thumb
 .thumb_func
 
+.global shiny_hack_main
 shiny_hack_main:
 	lsr r0, r4, #0x18
 	cmp r0, #0x3
